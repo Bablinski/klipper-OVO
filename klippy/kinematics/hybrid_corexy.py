@@ -1,6 +1,4 @@
- Code for handling the kinematics of hybrid-corexy robots
-#
-# Copyright (C) 2021  Fabrice Gallet <tircown@gmail.com>
+#Code for handling the kinematics of hybrid-corexy robots with logic inversion
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
