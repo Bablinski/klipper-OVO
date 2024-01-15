@@ -20,7 +20,8 @@ MIN_BOTH_EDGE_DURATION = 0.000000200
 class MCU_stepper:
     def __init__(self, name, step_pin_params, dir_pin_params,
                  rotation_dist, steps_per_rotation,
-                 step_pulse_duration=None, units_in_radians=False):
+                 step_pulse_duration=None, units_in_radians=False
+                 invert_dir=False):  # Added invert_dir parameter
         self._name = name
         self._rotation_dist = rotation_dist
         self._steps_per_rotation = steps_per_rotation
@@ -37,6 +38,7 @@ class MCU_stepper:
                 "Stepper dir pin must be on same mcu as step pin")
         self._dir_pin = dir_pin_params['pin']
         self._invert_dir = self._orig_invert_dir = dir_pin_params['invert']
+        self._invert_dir_requested = invert_dir  # Added invert_dir_requested
         self._step_both_edge = self._req_step_both_edge = False
         self._mcu_position_offset = 0.
         self._reset_cmd_tag = self._get_position_cmd = None
@@ -119,9 +121,9 @@ class MCU_stepper:
         return self._invert_dir, self._orig_invert_dir
     def set_dir_inverted(self, invert_dir):
         invert_dir = not not invert_dir
-        if invert_dir == self._invert_dir:
+        if invert_dir == self._invert_dir_requested: # updated condition
             return
-        self._invert_dir = invert_dir
+        self._invert_dir_requested = invert_dir # updated variable
         ffi_main, ffi_lib = chelper.get_ffi()
         ffi_lib.stepcompress_set_invert_sdir(self._stepqueue, invert_dir)
         self._mcu.get_printer().send_event("stepper:set_dir_inverted", self)
@@ -235,6 +237,7 @@ class MCU_stepper:
 def PrinterStepper(config, units_in_radians=False):
     printer = config.get_printer()
     name = config.get_name()
+    invert_dir = config.getboolean('invert_dir', False)  # Added invert_dir
     # Stepper definition
     ppins = printer.lookup_object('pins')
     step_pin = config.get('step_pin')
@@ -247,7 +250,8 @@ def PrinterStepper(config, units_in_radians=False):
                                           minval=0., maxval=.001)
     mcu_stepper = MCU_stepper(name, step_pin_params, dir_pin_params,
                               rotation_dist, steps_per_rotation,
-                              step_pulse_duration, units_in_radians)
+                              step_pulse_duration, units_in_radians,
+                              invert_dir=invert_dir)  # Updated instantiation
     # Register with helper modules
     for mname in ['stepper_enable', 'force_move', 'motion_report']:
         m = printer.load_object(config, mname)
